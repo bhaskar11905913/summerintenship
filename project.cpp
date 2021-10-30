@@ -1,307 +1,162 @@
-#include <iostream>
-#include <algorithm>
-#include <cstdlib>
-#include <time.h>
-#include <queue>
-#include <map>
+#include<bits/stdc++.h>
 using namespace std;
 
-class Process {
-	int id;
-	int burstTime;
-	int arrivalTime;
-	int completionTime;
-	int turnAroundTime;
-	int waitingTime;
-public :
-	int getId() {
-		return id;
-	}
-	int getBurstTime() {
-		return burstTime;
-	}
-	int getArrivalTime() {
-		return arrivalTime;
-	}
-	int getCompletionTime() {
-		return completionTime;
-	}
-	int getTurnAroundTime() {
-		return turnAroundTime;
-	}
-	int getWaitingTime() {
-		return waitingTime;
-	}
-	void setId(int id) {
-		this->id = id;
-	}
-	void setBurstTime(int burstTime) {
-		this->burstTime = burstTime;
-	}
-	void setArrivalTime(int arrivalTime) {
-		this->arrivalTime = arrivalTime;
-	}
-	void setCompletionTime(int completionTime) {
-		this->completionTime = completionTime;
-	}
-	void setTurnAroundTime(int turnAroundTime) {
-		this->turnAroundTime = turnAroundTime;
-	}
-	void setWaitingTime(int waitingTime) {
-		this->waitingTime = waitingTime;
-	}
-};
-
-bool compareByArrival(Process p, Process q)
+struct process_struct
 {
-    return p.getArrivalTime() < q.getArrivalTime();
+  int pid;
+  int at;
+  int bt;
+  int ct,wt,tat,rt,start_time;
+  int bt_remaining;
+}ps[100];
+
+bool comparatorAT(struct process_struct a,struct process_struct b)
+{
+   int x =a.at;
+   int y =b.at;
+   return x < y;
+//    if(x > y)
+//      return false;  // Apply sorting
+//    return true;   // no sorting
 }
 
-bool compareByBurst(Process p, Process q)
+bool comparatorPID(struct process_struct a,struct process_struct b)
 {
-    return p.getBurstTime() < q.getBurstTime();
+   int x =a.pid;
+   int y =b.pid;
+   return x < y;
 }
 
-bool compareById(Process p, Process q)
-{
-    return p.getId() < q.getId();
-}
-
-void display(Process P[], int jobCount, float avgwt = 0, float avgtat = 0)
-{
-	sort(P,P+jobCount,compareById);
-	cout<<"\n\n\t\t The Process Status \n\n";
-	cout<<"\tProcess ID\tArrival Time\tBurst Time\tCompletion Time\tTurn Around Time\tWaiting Time";
-	for (int i = 0; i < jobCount; ++i)
-		cout<<"\n\t\t"<<P[i].getId()<<"\t\t"<<P[i].getArrivalTime()<<"\t\t"<<P[i].getBurstTime()<<"\t\t"
-		<<P[i].getCompletionTime()<<"\t\t"<<P[i].getTurnAroundTime()<<"\t\t"<<P[i].getWaitingTime();
-	cout<<"\n\n\t\tAverage Waiting Time: "<<avgwt;
-	cout<<"\n\t\tAverage Turn Around Time: "<<avgtat;
-	cout<<"\n\n\n";
-
-}
-
-void getData(Process P[], int &jobCount)
-{
-	int x;
-	for(int i=0; i<jobCount; i++)
-	{
-		P[i].setId(i+1);
-		cout<<"\n\t Process ID: ";
-		cout<<P[i].getId();
-		cout<<"\n\t Enter the Process Arrival Time: ";
-		cin>>x;
-		P[i].setArrivalTime(x);
-		cout<<"\n\t Enter the Process Burst Time: ";
-		cin>>x;
-		P[i].setBurstTime(x);
-	}
-}
-
-void generateRandomData(Process P[], int jobCount)
-{
-	srand(time(NULL));
-	for(int i=0; i<jobCount; i++)
-	{
-		P[i].setId(i+1);
-		P[i].setArrivalTime(rand()%(16));
-		P[i].setBurstTime(rand()%20+2);
-		P[i].setCompletionTime(0);
-		P[i].setTurnAroundTime(0);
-		P[i].setWaitingTime(0);
-	}
-
-}
-
-
-void RoundRobin(Process P[], int jobCount)
-{
-	cout<<"\n\t*** Round Robin ***\n";
-    int tQuantum;
-    cout<<"\t Time quantum : ";
-    cin>>tQuantum;
-    bool inQueue[jobCount+1];
-  	fill(inQueue, inQueue+jobCount+1, false);
-    map<int, int> id_compl;
-	int jobDone = 0,curTime=0;
-	queue<Process> ready_queue;
-	do {
-		for (int i = 0; i < jobCount; ++i) {
-			if(!inQueue[P[i].getId()] && P[i].getArrivalTime()==curTime) {
-				ready_queue.push(P[i]);
-				inQueue[P[i].getId()]=true;
-			}
-		}
-		if(!ready_queue.empty()) {
-    		Process p = ready_queue.front();
-    		ready_queue.pop();
-    		int tq=min(tQuantum, p.getBurstTime());
-    		// cout<<"p"<<p.getId()<<"->";
-    		int b=p.getBurstTime();
-    		p.setBurstTime(p.getBurstTime()-tq);
-    		for (int i = curTime+1; i <= curTime+tq; ++i)
-    		{
-    			for (int j = 0; j < jobCount; ++j)
-    			{
-    				if(!inQueue[P[j].getId()] && P[j].getArrivalTime()==i) {
-					ready_queue.push(P[j]);
-					inQueue[P[j].getId()]=true;
-					}
-    			}
-    		}
-    		curTime += tq;
-    		if(p.getBurstTime()==0) {
-    			jobDone++;
-    			p.setCompletionTime(curTime);
-    			id_compl[p.getId()]=p.getCompletionTime();
-    		} else {
-    			ready_queue.push(p);
-    		}
-		} else {
-			curTime++;
-		}
-	} while(jobDone!=jobCount);
-
-	float avgWaitTime=0, avgTurnAroundTime=0;
-
-	for (int i = 0; i < jobCount; ++i)
-	{
-		P[i].setCompletionTime(id_compl[P[i].getId()]);
-		P[i].setTurnAroundTime(P[i].getCompletionTime() - P[i].getArrivalTime());
-		P[i].setWaitingTime(P[i].getTurnAroundTime() - P[i].getBurstTime());
-		avgWaitTime+=P[i].getWaitingTime();
-		avgTurnAroundTime+=P[i].getTurnAroundTime();
-	}
-
-    avgWaitTime = (float)avgWaitTime/jobCount;
-	avgTurnAroundTime = (float)avgTurnAroundTime/jobCount;
-
-    display(P,jobCount,avgWaitTime,avgTurnAroundTime);
-
-}
-
-void FirstComeFirstServed(Process P[], int jobCount)
-{
-
-    cout<<"\n\t*** FCFS ***\n";
-
-    float avgWaitTime=0, avgTurnAroundTime=0;
-
-    sort(P, P+jobCount, compareByArrival); // Sorting the processes according to Arrival Time
-
-	for(int i = 0, prevEnd =0 ;i < jobCount; i++){
-		P[i].setCompletionTime(max(prevEnd, P[i].getArrivalTime()) + P[i].getBurstTime());
-		P[i].setTurnAroundTime(P[i].getCompletionTime() - P[i].getArrivalTime());
-		P[i].setWaitingTime(P[i].getTurnAroundTime() - P[i].getBurstTime());
-		prevEnd = P[i].getCompletionTime();
-
-		avgWaitTime+=P[i].getWaitingTime();
-		avgTurnAroundTime+=P[i].getTurnAroundTime();
-	}
-
-	avgWaitTime = (float)avgWaitTime/jobCount;
-	avgTurnAroundTime = (float)avgTurnAroundTime/jobCount;
-
-    display(P,jobCount,avgWaitTime,avgTurnAroundTime);
-}
-
-void ShortestJobFirst(Process P[], int jobCount) // Shortest job first non preemptive
-{
-	cout<<"\n\t*** SJF ***\n";
-
-	int executedCount = 0;
-	bool processActive[jobCount];
-	fill(processActive, processActive+jobCount, false);
-	vector <Process> processInQueue;
-	map<int, int> id_compl;
-	for(int time = 0; executedCount<jobCount;) {
-		for(int i=0; i<jobCount; i++) {
-			if(!processActive[P[i].getId()-1] && P[i].getArrivalTime()<=time){ 		//To check if process is executed before and also whether it has arrived or not
-				processInQueue.push_back(P[i]);				// Pushed to Process Arrived Vector
-				processActive[P[i].getId()-1] = true;
-			}
-		}
-		if(processInQueue.size()!=0) {
-			vector<Process>::iterator minPosition = min_element(processInQueue.begin(),
-			processInQueue.end(), compareByBurst);
-			Process processMinBurstTime = *minPosition;
-			time += processMinBurstTime.getBurstTime();
-			id_compl[processMinBurstTime.getId()] = time;
-			executedCount++;
-			processInQueue.erase(minPosition);
-
-		} else {
-			time++;
-		}
-	}
-
-	float avgWaitTime=0, avgTurnAroundTime=0;
-
-	for (int i = 0; i < jobCount; ++i)
-	{
-		P[i].setCompletionTime(id_compl[P[i].getId()]);
-		P[i].setTurnAroundTime(P[i].getCompletionTime() - P[i].getArrivalTime());
-		P[i].setWaitingTime(P[i].getTurnAroundTime() - P[i].getBurstTime());
-		avgWaitTime+=P[i].getWaitingTime();
-		avgTurnAroundTime+=P[i].getTurnAroundTime();
-	}
-
-    avgWaitTime = (float)avgWaitTime/jobCount;
-	avgTurnAroundTime = (float)avgTurnAroundTime/jobCount;
-
-    display(P,jobCount,avgWaitTime,avgTurnAroundTime);
-}
 int main()
 {
-	int schedulingType, dataInputChoice, jobCount;
-	while(1) {
-		
-		cout<<"\n\t*****CPU Scheduling Algorithms*****\n";
-		
-		cout<<"\t 1. First Come First Served (FCFS)\n\t 2. Shortest Job First (SJF)\n\t 3. Round Robin (RR)\n\t 0. Exit\n";
-		cout<<"\n\t Enter your choice [0-4] : ";
-		
-		cin>>schedulingType;
-		
-		if(schedulingType == 0) {
-			exit(1);
-		}
-		
-		cout<<"\n\t Manually enter data or Auto generated data? \n\t 1. Manually \t 2. Random Generated \n";
-		cout<<"\n\t Enter your choice [1/2] : ";
-		
-		cin>>dataInputChoice;
-		
-		cout<<"\t No. of processes : ";
-		cin>>jobCount;
-		
-		Process P[jobCount];
-		
-		switch(dataInputChoice){
-			case 1: {
-				getData(P,jobCount);
-				break;
-			}
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+    freopen("error.txt", "w", stderr);
+    #endif
+    
+    int n,index;
+    int cpu_utilization;
+    queue<int> q;
+    bool visited[100]={false},is_first_process=true;
+    int current_time = 0,max_completion_time;
+    int completed = 0,tq, total_idle_time=0,length_cycle;
+    cout<<"Enter total number of processes: ";
+    cin>>n;    
+    float sum_tat=0,sum_wt=0,sum_rt=0;
 
-			case 2: {
-				generateRandomData(P, jobCount);
-			}
-		}
+    cout << fixed << setprecision(2);
 
-		switch(schedulingType) {
-			case 1 : {
-				FirstComeFirstServed(P, jobCount);
-				break;
-			}
-			case 2 : {
-				ShortestJobFirst(P, jobCount);
-				break;
-			}
-			case 3 : {
-				RoundRobin(P, jobCount);
-				break;
-			}
-		}
-	}
-	return 0;
+    for(int i=0;i<n;i++)
+    {
+        cout<<"\nEnter Process " <<i<< " Arrival Time: ";
+        cin >> ps[i].at;
+        ps[i].pid=i;
+    }
+    
+    for(int i=0;i<n;i++)
+    {
+        cout<<"\nEnter Process " <<i<< " Burst Time: ";
+        cin >> ps[i].bt;
+        ps[i].bt_remaining= ps[i].bt;
+    }
+    
+    cout<<"\nEnter time quanta: ";
+    cin>>tq;
+    
+    //sort structure on the basis of Arrival time in increasing order
+    sort(ps,ps+n,comparatorAT);
+    
+    q.push(0);  
+    visited[0] = true;
+   
+    while(completed != n) 
+    {
+      index = q.front();      
+      q.pop();
+      
+      if(ps[index].bt_remaining == ps[index].bt)
+      {
+            ps[index].start_time = max(current_time,ps[index].at);
+            total_idle_time += (is_first_process == true) ? 0 : ps[index].start_time - current_time;
+            current_time =  ps[index].start_time;
+            is_first_process = false;
+             
+      }
+
+      if(ps[index].bt_remaining-tq > 0)
+      {    
+            ps[index].bt_remaining -= tq;
+            current_time += tq;
+      }
+      else 
+      {
+            current_time += ps[index].bt_remaining;
+            ps[index].bt_remaining = 0;
+            completed++;
+
+            ps[index].ct = current_time;
+            ps[index].tat = ps[index].ct - ps[index].at;
+            ps[index].wt = ps[index].tat - ps[index].bt;
+            ps[index].rt = ps[index].start_time - ps[index].at;
+
+            sum_tat += ps[index].tat;
+            sum_wt += ps[index].wt;
+            sum_rt += ps[index].rt;
+      }
+
+
+       //check which new Processes needs to be pushed to Ready Queue from Input list
+      for(int i = 1; i < n; i++) 
+      {
+          if(ps[i].bt_remaining > 0 && ps[i].at <= current_time && visited[i] == false) 
+          {
+            q.push(i);
+            visited[i] = true;
+          }
+      }
+      //check if Process on CPU needs to be pushed to Ready Queue
+      if( ps[index].bt_remaining> 0) 
+          q.push(index);
+            
+      //if queue is empty, just add one process from list, whose remaining burst time > 0
+      if(q.empty())
+      {
+          for(int i = 1; i < n; i++)
+          {
+            if(ps[i].bt_remaining > 0)
+            {
+              q.push(i);
+              visited[i] = true;
+              break;
+            }
+          }
+      }
+   } //end of while
+   
+   //Calculate Length of Process completion cycle
+  max_completion_time = INT_MIN;
+  
+  for(int i=0;i<n;i++)
+        max_completion_time = max(max_completion_time,ps[i].ct);
+      
+  length_cycle = max_completion_time - ps[0].at;  //ps[0].start_time; 
+    
+  cpu_utilization = (float)(length_cycle - total_idle_time)/ length_cycle;
+
+  //sort so that process ID in output comes in Original order (just for interactivity- Not needed otherwise)  
+  sort(ps, ps+n , comparatorPID);
+
+  //Output
+  cout<<"\nProcess No.\tAT\tCPU Burst Time\tStart Time\tCT\tTAT\tWT\tRT\n";
+  for(int i=0;i<n;i++)
+    cout<<i<<"\t\t"<<ps[i].at<<"\t"<<ps[i].bt<<"\t\t"<<ps[i].start_time<<"\t\t"<<ps[i].ct<<"\t"<<ps[i].tat<<"\t"<<ps[i].wt<<"\t"<<ps[i].rt<<endl;
+  cout<<endl;    
+
+  cout<<"\nAverage Turn Around time= "<< (float)sum_tat/n;
+  cout<<"\nAverage Waiting Time= "<<(float)sum_wt/n;
+  cout<<"\nAverage Response Time= "<<(float)sum_rt/n;    
+  cout<<"\nThroughput= "<<n/(float)length_cycle;
+  cout<<"\nCPU Utilization(Percentage)= " << cpu_utilization*100;
+  return 0;
 }
